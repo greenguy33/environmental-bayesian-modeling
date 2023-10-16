@@ -1,1 +1,2 @@
 city-temperature.csv - https://www.kaggle.com/datasets/subhamjain/temperature-of-all-countries-19952020/
+traffic_fatalities.csv - https://apps.who.int/gho/data/node.main.A997
