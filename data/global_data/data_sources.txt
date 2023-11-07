@@ -1,1 +1,3 @@
 co2_annmean_mlo.csv - https://gml.noaa.gov/aftp/products/trends/co2/
+life_expectancy_world_bank.csv - https://data.worldbank.org/indicator/SP.DYN.LE00.IN
+extreme_weather_events.csv - https://public.emdat.be/
