@@ -1,0 +1,50 @@
+model{
+
+	for(i in 1:n){
+
+		gdp_y[i] ~ dnorm(global_gdp_mu[i], global_gdp_prec)
+
+		temp_2[i] <- temp_x[i]^2
+		precip_2[i] <- precip_x[i]^2
+
+		global_gdp_mu[i] <- (temp_gdp_coef * temp_x[i]) + (temp_gdp_coef_2 * temp_2[i]) + (precip_gdp_coef * precip_x[i]) + (precip_gdp_coef_2 * precip_2[i]) + country_fixed_effect[countries[i]] + year_fixed_effect[year[i]] + grad_effects[i] + grad_effects_2[i] + regression_intercept
+
+		grad_effects[i] <- sum(grad_effects_matrix[,i])
+		grad_effects_2[i] <- sum(grad_effects_2_matrix[,i])
+
+		#precip_x_new[i] ~ dnorm(precip_a[i],precip_b[i])
+		#temp_x_new[i] ~ dnorm(temp_a[i],temp_b[i])
+
+	}
+
+	for(j in 1:m){
+		country_fixed_effect[j] ~ dnorm(0,1/25)
+	}
+
+	for(k in 1:o){
+		year_fixed_effect[k] ~ dnorm(0,1/4)
+	}
+
+	for(l in 1:p){
+		grad_effect_coefs[l] ~ dnorm(0,1/25)
+		grad_effect_2_coefs[l] ~ dnorm(0,1/25)
+	}
+
+	for(i in 1:n){
+		for(l in 1:p){
+			grad_effects_matrix[l,i] = grad_effect_coefs[l] * grad_effects_data[l,i]
+			grad_effects_2_matrix[l,i] = grad_effect_2_coefs[l] * grad_effects_2_data[l,i]
+		}
+	}
+
+	global_gdp_prec <- 1/(global_gdp_sigma^2)
+	global_gdp_sigma ~ dnorm(0,1) T(0,)
+
+	regression_intercept ~ dnorm(1,1/4)
+
+	temp_gdp_coef ~ dnorm(0,1/4)
+	precip_gdp_coef ~ dnorm(0,1/4)
+	temp_gdp_coef_2 ~ dnorm(0,1/4)
+	precip_gdp_coef_2 ~ dnorm(0,1/4)
+
+}
