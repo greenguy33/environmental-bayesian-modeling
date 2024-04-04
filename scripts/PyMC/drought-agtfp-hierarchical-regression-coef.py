@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from pytensor import tensor as pt
 import pickle as pkl
 from timeit import default_timer as timer
+import arviz as az
 
 data = pd.read_csv("data/drought-agtfp-gdp-data.csv")
 print(len(data))
@@ -60,8 +61,8 @@ tfp_scaled = tfp_scaler.fit_transform(np.array(data.ln_TFP_change).reshape(-1,1)
 
 with pm.Model() as model:
 
-    global_coef_prior_mean = pm.Normal("global_coef_prior_mean", 0, 1)
-    global_coef_prior_sd = pm.HalfNormal("global_coef_prior_sd", 1)
+    global_coef_prior_mean = pm.Normal("global_coef_prior_mean", 0, 5)
+    global_coef_prior_sd = pm.HalfNormal("global_coef_prior_sd", 5)
 
     country_coef_prior_means = pt.expand_dims(pm.Normal("country_coef_prior_means", global_coef_prior_mean, global_coef_prior_sd, shape=(len(set(data.country)))),axis=1)
     country_coef_priors = pm.Deterministic("country_coef_priors", pt.sum(country_coef_prior_means*country_fixed_effect_matrix,axis=0))
@@ -69,19 +70,19 @@ with pm.Model() as model:
     country_coef_prior_sd = pm.HalfNormal("country_coef_prior_sd", 5)
     drought_tfp_coef = pm.Normal("drought_tfp_coef", country_coef_priors, country_coef_prior_sd)
     
-    intercept = pm.Normal("intercept", 0, .1)
+    intercept = pm.Normal("intercept", 0, 5)
 
-    year_fixed_effect_coefs = pt.expand_dims(pm.Normal("year_fixed_effect_coefs", 0, 10, shape=(len(set(data.year)))),axis=1)
-    year_fixed_effects = pm.Deterministic("year_fixed_effects",pt.sum(year_fixed_effect_coefs*year_fixed_effect_matrix,axis=0))
+    # year_fixed_effect_coefs = pt.expand_dims(pm.Normal("year_fixed_effect_coefs", 0, 10, shape=(len(set(data.year)))),axis=1)
+    # year_fixed_effects = pm.Deterministic("year_fixed_effects",pt.sum(year_fixed_effect_coefs*year_fixed_effect_matrix,axis=0))
 
-    country_grad_effect_coefs = pt.expand_dims(pm.Normal("country_grad_effect_coefs", 0, 10, shape=(len(set(data.country)))),axis=1)
-    country_grad_effects = pm.Deterministic("grad_effects",pt.sum(country_grad_effect_coefs*country_grad_effect_matrix,axis=0))
+    # country_grad_effect_coefs = pt.expand_dims(pm.Normal("country_grad_effect_coefs", 0, 10, shape=(len(set(data.country)))),axis=1)
+    # country_grad_effects = pm.Deterministic("grad_effects",pt.sum(country_grad_effect_coefs*country_grad_effect_matrix,axis=0))
     
     tfp_prior = pm.Normal(
         "tfp_prior", 
         (drought_tfp_coef * data.drought) + 
-        year_fixed_effects + 
-        country_grad_effects +
+        # year_fixed_effects + 
+        # country_grad_effects +
         intercept
     )
 
@@ -106,3 +107,5 @@ with pm.Model() as model:
             "posterior":posterior,
             "tfp_scaler":tfp_scaler
         },buff)
+
+    print(az.summary(trace, var_names=["global_coef_prior_mean", "global_coef_prior_sd", "intercept", "tfp_sd"]))
