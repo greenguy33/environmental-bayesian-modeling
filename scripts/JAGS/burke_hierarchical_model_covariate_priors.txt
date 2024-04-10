@@ -1,10 +1,20 @@
 model{
 
+  for(i in 1:n){
+  
+    gdp_y[i] ~ dnorm(global_gdp_mu[i], global_gdp_prec)
+    
+    global_gdp_mu[i] <- (temp_gdp_coef * temp[i]) + (temp_gdp_coef_2 * temp[i]^2) + (precip_gdp_coef * precip[i]) + (precip_gdp_coef_2 * precip[i]^2) + year_fixed_effect[year[i]] + grad_effects[i] + grad_effects_2[i] + regression_intercept
+    
+    temp[i] <- ifelse(temp_missing_indices[i] == 1, temp_x_new[i], temp_x[i])
+    precip[i] <- ifelse(precip_missing_indices[i] == 1, precip_x_new[i], precip_x[i])
+    
+    grad_effects[i] <- sum(grad_effects_matrix[,i])
+	grad_effects_2[i] <- sum(grad_effects_2_matrix[,i])
+		
+  }
+  
 	for(i in 1:n){
-
-		gdp_y[i] ~ dnorm(global_gdp_mu[i], global_gdp_prec)
-
-		global_gdp_mu[i] <- (temp_gdp_coef * temp_x[i]) + (temp_gdp_coef_2 * temp_x[i]^2) + (precip_gdp_coef * precip_x[i]) + (precip_gdp_coef_2 * precip_x[i]^2) + country_fixed_effect[countries[i]] + year_fixed_effect[year[i]] + grad_effects[i] + grad_effects_2[i] + regression_intercept
 
 		temp_x[i] ~ dnorm(temp_a[i],country_temp_prec)
 		temp_a[i] <- country_temp_theta[countries[i]]
@@ -12,21 +22,18 @@ model{
 		precip_x[i] ~ dnorm(precip_a[i],country_precip_prec)
 		precip_a[i] <- country_precip_theta[countries[i]]
 
-		grad_effects[i] <- sum(grad_effects_matrix[,i])
-		grad_effects_2[i] <- sum(grad_effects_2_matrix[,i])
-
-		#precip_x_new[i] ~ dnorm(precip_a[i],precip_b[i])
-		#temp_x_new[i] ~ dnorm(temp_a[i],temp_b[i])
+		precip_x_new[i] ~ dnorm(precip_a[i],country_precip_prec)
+		temp_x_new[i] ~ dnorm(temp_a[i],country_temp_prec)
 
 	}
 
 	for(j in 1:m){
-		country_fixed_effect[j] ~ dnorm(0,1/25)
 		country_temp_theta[j] ~ dnorm(global_temp_mu, global_temp_sigma)
 		country_precip_theta[j] ~ dnorm(global_precip_mu, global_precip_sigma)
 	}
 
-	for(k in 1:o){
+  year_fixed_effect[1] = 0
+	for(k in 2:o){
 		year_fixed_effect[k] ~ dnorm(0,1/4)
 	}
 

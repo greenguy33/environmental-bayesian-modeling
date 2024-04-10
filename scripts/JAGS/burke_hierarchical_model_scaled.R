@@ -17,6 +17,9 @@ gdp <- burke.data[,11]
 temp <- burke.data[,28]
 precip <- burke.data[,29]
 
+temp_missing_indices = as.numeric(is.na(temp))
+precip_missing_indices = as.numeric(is.na(precip))
+
 grad_effects <- transpose(burke.data[, grep(pattern ='X_yi_*', names(burke.data))])
 grad_effects_2 <- transpose(burke.data[, grep(pattern ='X_y2_*', names(burke.data))])
 
@@ -46,12 +49,14 @@ jags <- jags.model(
     'countries'=countries_encoded,
     'year'=years_encoded,
     'grad_effects_data'=grad_effects,
-    'grad_effects_2_data'=grad_effects_2
+    'grad_effects_2_data'=grad_effects_2,
+    'temp_missing_indices'=temp_missing_indices,
+    'precip_missing_indices'=precip_missing_indices
   ),
   n.chains=4
 )
 # Burn-in samples
-update(jags, 1000)
+# update(jags, 1000)
 jags.output.coda <- coda.samples(
   jags,
   c(
@@ -60,21 +65,29 @@ jags.output.coda <- coda.samples(
     'temp_gdp_coef_2',
     'precip_gdp_coef_2',
     'regression_intercept',
-    'global_gdp_sigma'
+    'global_gdp_sigma',
+    'country_temp_theta',
+    'country_precip_theta',
+    'temp_x_new',
+    'precip_x_new',
+    'country_temp_sigma',
+    'country_precip_sigma'
   ),
   n.iter=1000
 )
 
-temp_coef <- as.vector(rbind(jags.output.coda[[1]][,5],jags.output.coda[[2]][,5],jags.output.coda[[3]][,5],jags.output.coda[[4]][,5]))
-temp_coef_2 <- as.vector(rbind(jags.output.coda[[1]][,6],jags.output.coda[[2]][,6],jags.output.coda[[3]][,6],jags.output.coda[[4]][,6]))
-temp_denominator <- sapply(temp_coef_2, function(i){i*-2})
-temp_vertex <- temp_coef / temp_denominator
-temp_observed_mean <- attributes(scaled_temp)$`scaled:center`
-temp_observed_sd <- attributes(scaled_temp)$`scaled:scale`
-unscaled_temp_vertex <- (temp_vertex * temp_observed_sd) + temp_observed_mean
-print(mean(unscaled_temp_vertex))
-print(sd(unscaled_temp_vertex))
-coda::gelman.diag(jags.output.coda)
-coda::effective_size(jags.output.coda)
-plot(jags.output.coda)
-coda::gelman.plot(jags.output.coda)
+save.image(file='burke_missing_data_imputed_hierarchical_country_priors.RData')
+
+# temp_coef <- as.vector(rbind(jags.output.coda[[1]][,5],jags.output.coda[[2]][,5],jags.output.coda[[3]][,5],jags.output.coda[[4]][,5]))
+# temp_coef_2 <- as.vector(rbind(jags.output.coda[[1]][,6],jags.output.coda[[2]][,6],jags.output.coda[[3]][,6],jags.output.coda[[4]][,6]))
+# temp_denominator <- sapply(temp_coef_2, function(i){i*-2})
+# temp_vertex <- temp_coef / temp_denominator
+# temp_observed_mean <- attributes(scaled_temp)$`scaled:center`
+# temp_observed_sd <- attributes(scaled_temp)$`scaled:scale`
+# unscaled_temp_vertex <- (temp_vertex * temp_observed_sd) + temp_observed_mean
+# print(mean(unscaled_temp_vertex))
+# print(sd(unscaled_temp_vertex))
+# coda::gelman.diag(jags.output.coda)
+# coda::effective_size(jags.output.coda)
+# plot(jags.output.coda)
+# coda::gelman.plot(jags.output.coda)

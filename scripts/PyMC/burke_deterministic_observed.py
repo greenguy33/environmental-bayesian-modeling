@@ -6,7 +6,6 @@ from pytensor import tensor as pt
 import pickle as pkl
 from sklearn.linear_model import LinearRegression
 import csv
-from timeit import default_timer as timer
 
 data = pd.read_csv("data/burke-dataset.csv")
 
@@ -44,27 +43,23 @@ for row_index, row in enumerate(data.itertuples()):
 
 grad_effects_data = np.transpose(np.array(data.loc[:, data.columns.str.startswith(('_y'))]))
 
-# start timer
-
-start = timer()
-
 # construct model and sample
 
 with pm.Model() as model:
 
-    gdp_intercept = pm.Normal('gdp_intercept',1,2)
-    temp_gdp_coef = pm.Normal('temp_gdp_coef',-.5,.5)
-    temp_sq_gdp_coef = pm.Normal('temp_sq_gdp_coef',-.5,.5)
-    precip_gdp_coef = pm.Normal("precip_gdp_coef",.05,.2)
-    precip_sq_gdp_coef = pm.Normal("precip_sq_gdp_coef",-.05,.1)
+    gdp_intercept = pm.Normal('gdp_intercept',0,1)
+    temp_gdp_coef = pm.Normal('temp_gdp_coef',0,1)
+    temp_sq_gdp_coef = pm.Normal('temp_sq_gdp_coef',0,1)
+    precip_gdp_coef = pm.Normal("precip_gdp_coef",0,1)
+    precip_sq_gdp_coef = pm.Normal("precip_sq_gdp_coef",0,1)
 
-    year_coefs = pt.expand_dims(pm.Normal("year_coefs", -.1, 2, shape=(len(set(data.year)))),axis=1)
+    year_coefs = pt.expand_dims(pm.Normal("year_coefs", 0, 5, shape=(len(set(data.year)))),axis=1)
     year_fixed_effects = pm.Deterministic("year_fixed_effects",pt.sum(year_coefs*year_mult_mat,axis=0))
 
-    country_coefs = pt.expand_dims(pm.Normal("country_coefs", .1, 5, shape=(len(set(data.iso)))),axis=1)
+    country_coefs = pt.expand_dims(pm.Normal("country_coefs", 0, 5, shape=(len(set(data.iso)))),axis=1)
     country_fixed_effects = pm.Deterministic("country_fixed_effects",pt.sum(country_coefs*country_mult_mat,axis=0))
 
-    gradual_effect_coefs = pt.expand_dims(pm.Normal("grad_effect_coefs", -.1, 5, shape=(len(grad_effects_data))),axis=1)
+    gradual_effect_coefs = pt.expand_dims(pm.Normal("grad_effect_coefs", 0, 5, shape=(len(grad_effects_data))),axis=1)
     gradual_effects = pm.Deterministic("grad_effects",pt.sum(gradual_effect_coefs*grad_effects_data,axis=0))
 
     gdp_prior = pm.Deterministic(
@@ -79,7 +74,7 @@ with pm.Model() as model:
         gradual_effects
     )
 
-    gdp_std = pm.HalfNormal('gdp_std', sigma=.1)
+    gdp_std = pm.HalfNormal('gdp_std', sigma=1)
     gdp_posterior = pm.Normal('gdp_posterior', mu=gdp_prior, sigma=gdp_std, observed=gdp_scaled)
 
     prior = pm.sample_prior_predictive()
@@ -88,7 +83,7 @@ with pm.Model() as model:
 
 # save model to file
 
-with open ('models/burke-reproduction-mcmc-fixed-effects-grad-effects-missing-rows-omitted-deterministic-observed-new-priors.pkl', 'wb') as buff:
+with open ('models/burke-reproduction-mcmc-fixed-effects-grad-effects-missing-rows-omitted-deterministic-observed.pkl', 'wb') as buff:
     pkl.dump({
         "prior":prior,
         "trace":trace,
@@ -97,10 +92,3 @@ with open ('models/burke-reproduction-mcmc-fixed-effects-grad-effects-missing-ro
         "temp_scaler":temp_scaler,
         "gdp_scaler":gdp_scaler
     },buff)
-
-# end timer
-
-end = timer()
-
-print("Runtime:")
-print(end - start)
