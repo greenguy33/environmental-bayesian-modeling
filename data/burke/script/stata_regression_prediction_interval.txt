@@ -1,0 +1,71 @@
+cd ../../environmental_bayesian_modeling/data/burke/data/input/
+set matsize 800
+use GrowthClimateDataset_train, clear
+gen temp = udel_temp_popweight
+
+// Standard Regression
+
+reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id, cluster(encoded_iso_id)
+
+est save burke_stata_regression_clustered_error
+
+// export covariance matrix
+
+mat V=e(V)
+esttab mat(V) using burke_regression_covariance_matrix.csv, replace mlab(none)
+
+// use delta method on test data
+
+clear all
+
+// matrix table = r(table)
+// 95% confidence t-score
+// scalar tcrit = table[8,1]
+use GrowthClimateDataset_test
+gen temp = udel_temp_popweight
+
+est use burke_stata_regression_clustered_error
+predict yhat
+predict stdp, stdp
+generate lower = yhat - 1.9603795*stdp
+generate upper = yhat + 1.9603795*stdp
+
+export delimited burke_stdp_pred_clustered_error
+
+// Homespun Bootstrap
+
+bootstrap, reps(1500) seed(1) saving("bootstrap/burke_bootstrap_replications_robust"): reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id, cluster(encoded_iso_id)
+
+est save bootstrap/burke_bootstrap_robust
+
+clear
+
+// view bootstrap regression results
+est use bootstrap/burke_bootstrap_robust
+est replay
+
+use GrowthClimateDataset_test
+gen temp = udel_temp_popweight
+predict yhat
+predict stdp, stdp
+generate lower = yhat - 1.9603795*stdp
+generate upper = yhat + 1.9603795*stdp
+export delimited bootstrap/burke_bootstrap_stdp_robust
+
+// save coefficients from all bootstrap replicationsas CSV with variable labels
+clear
+use bootstrap/burke_bootstrap_coefs
+export excel temp.xlsx, firstrow(varlabels)
+import excel temp.xlsx
+export delimited bootstrap/burke_stata_bootstrap
+
+// Burke Bootstrap
+
+forvalues nn = 1/1200 {
+use GrowthClimateDataset_train, clear
+bsample, cl(iso_id)
+qui gen Udel_temp_popweight_2 = udel_temp_popweight^2
+	qui reg growthwdi udel_temp_popweight udel_temp_popweight_2 udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id 
+esttab, wide, using bootstrap/replications/replication_`nn'.csv
+di "`nn'"
+}
