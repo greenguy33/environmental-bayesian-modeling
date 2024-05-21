@@ -5,14 +5,10 @@ gen temp = udel_temp_popweight
 
 // Standard Regression
 
-reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id, cluster(encoded_iso_id)
+// reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id, cluster(encoded_iso_id)
+reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id
 
-est save burke_stata_regression_clustered_error
-
-// export covariance matrix
-
-mat V=e(V)
-esttab mat(V) using burke_regression_covariance_matrix.csv, replace mlab(none)
+est save test_regressions/burke_stata_regression_first_order_temp_no_precip
 
 // use delta method on test data
 
@@ -24,13 +20,18 @@ clear all
 use GrowthClimateDataset_test
 gen temp = udel_temp_popweight
 
-est use burke_stata_regression_clustered_error
+est use test_regressions/burke_stata_regression_first_order_temp_no_precip
 predict yhat
 predict stdp, stdp
 generate lower = yhat - 1.9603795*stdp
 generate upper = yhat + 1.9603795*stdp
 
-export delimited burke_stdp_pred_clustered_error
+export delimited test_regressions/burke_stdp_pred_first_order_temp_no_precip
+
+// export covariance matrix
+
+mat V=e(V)
+esttab mat(V) using burke_regression_covariance_matrix.csv, replace mlab(none)
 
 // Homespun Bootstrap
 
