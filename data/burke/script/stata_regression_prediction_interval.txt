@@ -5,10 +5,13 @@ gen temp = udel_temp_popweight
 
 // Standard Regression
 
-// reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id, cluster(encoded_iso_id)
 reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id
 
-est save test_regressions/burke_stata_regression_first_order_temp_no_precip
+est save burke_stata_regression
+
+// export covariance matrix
+
+esttab mat(V) using burke_regression_covariance_matrix.csv, replace mlab(none)
 
 // use delta method on test data
 
@@ -20,18 +23,42 @@ clear all
 use GrowthClimateDataset_test
 gen temp = udel_temp_popweight
 
-est use test_regressions/burke_stata_regression_first_order_temp_no_precip
+est use test_regressions/burke_stata_regression
+
 predict yhat
 predict stdp, stdp
 generate lower = yhat - 1.9603795*stdp
 generate upper = yhat + 1.9603795*stdp
 
-export delimited test_regressions/burke_stdp_pred_first_order_temp_no_precip
+export delimited burke_stdp_pred
 
-// export covariance matrix
+// get vertex bounds with delta method
 
+est use burke_stata_regression
+
+matrix b = e(b)
 mat V=e(V)
-esttab mat(V) using burke_regression_covariance_matrix.csv, replace mlab(none)
+
+local coef1 = b[1,1]
+local coef2 = b[1,2]
+local coef1_sq = `coef1'*`coef1'
+local coef2_sq = `coef2'*`coef2'
+local coef_mult = `coef1'*`coef2'
+local coef_div = `coef1'/`coef2'
+
+local t_t2_cov = V[1,2]
+local coef1_var = V[1,1]
+local coef2_var = V[2,2]
+
+local vertex_variance = .25 * (`coef_div' * `coef_div') * ((`coef1_var'/`coef1_sq') + (`coef2_var'/`coef2_sq')-(2*(`t_t2_cov'/`coef_mult')))
+
+local vertex = `coef1' / (-2 * `coef2')
+local lower = `vertex' - (1.645 * sqrt(`vertex_variance'))
+local upper = `vertex' + (1.645 * sqrt(`vertex_variance'))
+
+display `vertex'
+display `lower'
+display `upper'
 
 // Homespun Bootstrap
 
