@@ -2,3 +2,14 @@
 data/ortiz-bobea/data
 data/ortiz-bobea/TFP_global_R
 data/ortiz-bobea/data2/CMIP6_co
+data/ortiz-bobea/climate_model_output
+data/ortiz-bobea/ComparisonOutputFiles
+data/ortiz-bobea/figures
+data/ortiz-bobea/tables
+data/ortiz-bobea/data2/globalmap
+data/ortiz-bobea/data2/ndvi_co
+data/ortiz-bobea/data2/Princeton_co
+data/ortiz-bobea/data2/temp_effect_by_country
+data/ortiz-bobea/data2/weights
+data/ortiz-bobea/data2/results_ncases313_nboot500_nperm10000_npairs2000-002.RDS
+data/ortiz-bobea/data2/.DS_Store

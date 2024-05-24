@@ -1,0 +1,65 @@
+cd environmental_bayesian_modeling/data/ortiz-bobea/data2
+set matsize 800
+use regdata_train, clear
+
+reg fd_log_tfp fd_tmean fd_tmean_sq fd_prcp fd_prcp_sq i.encoded_iso_id i.year
+est save ortiz_stata_regression_train
+
+// use delta method on test data
+clear all
+use regdata_test
+est use ortiz_stata_regression
+predict yhat
+predict stdp, stdp
+generate lower = yhat - 1.9603795*stdp
+generate upper = yhat + 1.9603795*stdp
+
+export delimited ortiz_stdp_pred_outsample
+
+// export covariance matrix
+
+mat V=e(V)
+esttab mat(V) using ortiz_regression_covariance_matrix_train.csv, replace mlab(none)
+
+// bootstrap
+
+bootstrap, reps(1500) seed(1) saving("bootstrap/ortiz_bootstrap_replications"): reg fd_log_tfp fd_tmean fd_tmean_sq fd_prcp fd_prcp_sq i.encoded_iso_id i.year
+est save bootstrap/ortiz_bootstrap
+
+// save coefficients from all bootstrap replicationsas CSV with variable labels
+
+clear
+use bootstrap/ortiz_bootstrap_replications
+export excel temp.xlsx, firstrow(varlabels)
+clear all
+import excel temp.xlsx
+export delimited bootstrap/ortiz_stata_bootstrap
+
+// view bootstrap regression results
+
+clear
+est use bootstrap/ortiz_bootstrap
+est replay
+
+// prediction interval for climate diff dataset
+
+use regdata_preferred_case_encoded_iso_id
+
+reg fd_log_tfp fd_tmean fd_tmean_sq fd_prcp fd_prcp_sq i.encoded_iso_id i.year
+est save ortiz_stata_regression
+
+clear all
+use climate_diff_dataset
+est use ortiz_stata_regression
+
+matrix b = e(b)
+predict stdp, stdp
+
+gen yhat = b[1,1] * fd_tmean + b[1,2] * fd_tmean_sq + b[1,3] * fd_prcp + b[1,4] * fd_prcp_sq
+
+export delimited ortiz_stdp_diff_pred
+
+// covariance matrix
+
+mat V=e(V)
+esttab mat(V) using ortiz_regression_covariance_matrix.csv, replace mlab(none)

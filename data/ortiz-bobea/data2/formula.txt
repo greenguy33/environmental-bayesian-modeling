@@ -1,0 +1,1 @@
+fd_log_tfp ~ fd_tmean + fd_tmean_sq + fd_prcp + fd_prcp_sq | ISO3 + year | 0 | ISO3 + block
