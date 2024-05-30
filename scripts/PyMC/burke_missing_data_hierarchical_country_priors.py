@@ -6,8 +6,9 @@ from pytensor import tensor as pt
 import pickle as pkl
 from timeit import default_timer as timer
 
-# data = pd.read_csv("data/burke-dataset.csv")
-data = pd.read_csv("../data/burke/data/input/GrowthClimateDataset.csv")
+# data = pd.read_csv("data/burke-dataset-random-withheld-missing.csv")
+data = pd.read_csv("../../data/burke/data/input/GrowthClimateDataset_train_missing_data.csv")
+data.sort_values("iso", axis=0, inplace=True)
 
 # remove all data or year for countries where climate data is entirely missing
 
@@ -36,7 +37,7 @@ for index, row in enumerate(data.itertuples()):
 data_len_before = len(data)
 data = data.drop(indices_to_drop)
 data = data.reset_index()
-print(f"Removed {data_len_before - len(data)} rows for completely country climate data.")
+print(f"Removed {data_len_before - len(data)} rows for completely missing country climate data.")
 
 # data scaling
 
@@ -47,17 +48,18 @@ temp_scaled = temp_scaler.fit_transform(np.array(data.UDel_temp_popweight).resha
 
 # year and country fixed effect coefficient matrices
 
-data_len = len(data.year)
+data_len = len(data)
 year_mult_mat = [np.zeros(data_len) for year in set(data.year)]
 country_mult_mat = [np.zeros(data_len) for country in set(data.iso)]
 country_index = -1
 curr_country = ""
 
+min_year = min(data.year)
 for row_index, row in enumerate(data.itertuples()):
    if row.iso != curr_country:
        country_index += 1
        curr_country = row.iso
-   year_index = row.year - min(data.year)
+   year_index = row.year - min_year
    country_mult_mat[country_index][row_index] = 1
    year_mult_mat[year_index][row_index] = 1
 
@@ -88,10 +90,12 @@ with pm.Model() as model:
     precip_gdp_coef = pm.Normal("precip_gdp_coef",0,2)
     precip_sq_gdp_coef = pm.Normal("precip_sq_gdp_coef",0,2)
 
-    year_coefs = pt.expand_dims(pm.Normal("year_coefs", 0, 5, shape=(len(set(data.year)))),axis=1)
+    year_coefs = pt.expand_dims(pm.Normal("year_coefs", 0, 5, shape=(len(set(data.year))-1)),axis=1)
+    year_coefs = pm.math.concatenate([[[0]],year_coefs])
     year_fixed_effects = pm.Deterministic("year_fixed_effects",pt.sum(year_coefs*year_mult_mat,axis=0))
 
-    country_coefs = pt.expand_dims(pm.Normal("country_coefs", 0, 5, shape=(len(set(data.iso)))),axis=1)
+    country_coefs = pt.expand_dims(pm.Normal("country_coefs", 0, 5, shape=(len(set(data.iso))-1)),axis=1)
+    country_coefs = pm.math.concatenate([[[0]],country_coefs])
     country_fixed_effects = pm.Deterministic("country_fixed_effects",pt.sum(country_coefs*country_mult_mat,axis=0))
 
     gradual_effect_coefs = pt.expand_dims(pm.Normal("grad_effect_coefs", 0, 5, shape=(len(grad_effects_data))),axis=1)
