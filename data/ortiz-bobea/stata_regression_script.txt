@@ -1,4 +1,4 @@
-cd environmental_bayesian_modeling/data/ortiz-bobea/data2
+cd ../../environmental_bayesian_modeling/data/ortiz-bobea/data2
 set matsize 800
 use regdata_train, clear
 
@@ -23,17 +23,22 @@ esttab mat(V) using ortiz_regression_covariance_matrix_train.csv, replace mlab(n
 
 // bootstrap
 
-bootstrap, reps(1500) seed(1) saving("bootstrap/ortiz_bootstrap_replications"): reg fd_log_tfp fd_tmean fd_tmean_sq fd_prcp fd_prcp_sq i.encoded_iso_id i.year
-est save bootstrap/ortiz_bootstrap
+// standard bootstrap
+// bootstrap, reps(1000) seed(1) saving("bootstrap/ortiz_bootstrap_replications"): reg fd_log_tfp fd_tmean fd_tmean_sq fd_prcp fd_prcp_sq i.encoded_iso_id i.year
+
+// cluster (block) bootstrap
+bootstrap, reps(1500) seed(1) cluster(block) idcluster(blockid) saving("bootstrap/ortiz_bootstrap_replications_block_withheld"): reg fd_log_tfp fd_tmean fd_tmean_sq fd_prcp fd_prcp_sq i.encoded_iso_id i.year
+
+est save bootstrap/ortiz_bootstrap_block_withheld
 
 // save coefficients from all bootstrap replicationsas CSV with variable labels
 
 clear
-use bootstrap/ortiz_bootstrap_replications
+use bootstrap/ortiz_bootstrap_replications_block_withheld
 export excel temp.xlsx, firstrow(varlabels)
 clear all
 import excel temp.xlsx
-export delimited bootstrap/ortiz_stata_bootstrap
+export delimited bootstrap/ortiz_stata_bootstrap_block_withheld
 
 // view bootstrap regression results
 

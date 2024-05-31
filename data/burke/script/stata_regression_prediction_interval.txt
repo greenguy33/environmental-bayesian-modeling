@@ -6,6 +6,7 @@ gen temp = udel_temp_popweight
 // Standard Regression
 
 reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id
+reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* _y3_* i.encoded_iso_id
 
 est save burke_stata_regression
 
@@ -60,11 +61,12 @@ display `vertex'
 display `lower'
 display `upper'
 
-// Homespun Bootstrap
+// Bootstrap
+bootstrap, reps(1500) seed(1) saving("bootstrap/burke_bootstrap_replications"): reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id
+// Block Bootstrap
+bootstrap, reps(1500) seed(1) cluster(block) idcluster(block_id) saving("bootstrap/burke_bootstrap_replications_block"): reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id
 
-bootstrap, reps(1500) seed(1) saving("bootstrap/burke_bootstrap_replications_robust"): reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id, cluster(encoded_iso_id)
-
-est save bootstrap/burke_bootstrap_robust
+est save bootstrap/burke_bootstrap_block_withheld
 
 clear
 
@@ -81,11 +83,11 @@ generate upper = yhat + 1.9603795*stdp
 export delimited bootstrap/burke_bootstrap_stdp_robust
 
 // save coefficients from all bootstrap replicationsas CSV with variable labels
-clear
-use bootstrap/burke_bootstrap_coefs
+clear all
+use bootstrap/burke_bootstrap_replications_block_withheld
 export excel temp.xlsx, firstrow(varlabels)
 import excel temp.xlsx
-export delimited bootstrap/burke_stata_bootstrap
+export delimited bootstrap/burke_stata_bootstrap_block_withheld
 
 // Burke Bootstrap
 
