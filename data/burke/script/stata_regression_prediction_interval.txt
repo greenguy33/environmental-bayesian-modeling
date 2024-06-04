@@ -6,7 +6,7 @@ gen temp = udel_temp_popweight
 // Standard Regression
 
 reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* i.encoded_iso_id
-reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* _y3_* i.encoded_iso_id
+// reg growthwdi c.temp##c.temp udel_precip_popweight udel_precip_popweight_2 i.year _yi_* _y2_* _y3_* i.encoded_iso_id
 
 est save burke_stata_regression
 
