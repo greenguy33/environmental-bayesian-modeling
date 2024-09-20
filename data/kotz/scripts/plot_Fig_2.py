@@ -8,7 +8,7 @@ import glob
 #project the losses of dlgdp onto a world map
 
 #climate and economic data table
-table=pd.read_stata("T_econ.dta")
+data=pd.read_stata("T_econ.dta")
 
 #load masks
 #country level
@@ -18,9 +18,9 @@ mask=gpd.read_file('gadm36_levels.gpkg',layer=1)
 
 #lists of helpful identifiers
 GID0list=pd.unique(mask.GID_0)
-isolist=pd.unique(table.iso)
+isolist=pd.unique(data.iso)
 
-#results from Table 1, Column 7 based on highest R sqr, lowest BIC score
+#results from table 1, Column 7 based on highest R sqr, lowest BIC score
 alpha=-11.5
 beta=0.192
 
@@ -32,11 +32,11 @@ for i in range(len(GID0list)):
 	iso=GID0list[i]
 	no_regions=len(mask.loc[mask.GID_0==iso])
 	if iso in isolist:
-		wlrd1list=pd.unique(table.loc[table.iso==iso,'wrld1id_1'])
+		wlrd1list=pd.unique(data.loc[data.iso==iso,'wrld1id_1'])
 		for j in range(no_regions):
 			reg_no=j+1
 			if reg_no in wlrd1list:	
-				T_diff=table.loc[(table.iso==iso) & (table.wrld1id_1==reg_no),'T5_seas_diff_m'].mean()
+				T_diff=data.loc[(data.iso==iso) & (data.wrld1id_1==reg_no),'T5_seas_diff_m'].mean()
 				proj.append(alpha + beta*T_diff)
 			else:	
 				proj.append(np.nan)
@@ -56,7 +56,7 @@ vmin=-12
 colors = np.vstack((colors3, colors2, colors1))
 my_cmap = mcolors.LinearSegmentedColormap.from_list('my_colormap', colors)
 #my_cmap = shiftedColorMap(my_cmap, start=vmin, stop = vmax, midpoint=0, name='my_cmap')
-divnorm = mcolors.DivergingNorm(vmin=vmin, vcenter=0, vmax=vmax)
+divnorm = mcolors.TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
 
 degree_sign= u'\N{DEGREE SIGN}'
 C=degree_sign + 'C'
